@@ -1,0 +1,178 @@
+.upload-box {
+  max-width: 720px;
+  margin: 45px auto;
+  padding: 36px;
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.upload-box h2 {
+  margin-top: 0;
+  margin-bottom: 30px;
+  font-size: 32px;
+  color: #0f172a;
+  text-align: center;
+}
+
+.upload-box label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.upload-box input[type="text"] {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  outline: none;
+  margin-bottom: 26px;
+  transition: 0.25s;
+  box-sizing: border-box;
+}
+
+.upload-box input[type="text"]:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.upload-area {
+  display: block;
+  padding: 40px 25px;
+  text-align: center;
+  border: 2px dashed #94a3b8;
+  border-radius: 18px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: 0.25s ease;
+  margin-bottom: 28px;
+}
+
+.upload-area:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.upload-area input {
+  display: none;
+}
+
+.upload-area h3 {
+  margin: 10px 0;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.upload-area p {
+  margin: 8px 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.upload-box button {
+  width: 100%;
+  padding: 16px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.upload-box button:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.upload-box button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading-box {
+  margin-top: 22px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #eff6ff;
+  border-left: 5px solid #2563eb;
+}
+
+.loading-box p {
+  margin: 6px 0;
+  font-size: 15px;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.selected-file {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #15803d;
+  font-weight: 600;
+  text-align: center;
+}
+
+.upload-note {
+  margin-top: 15px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .upload-box {
+    margin: 25px 14px;
+    padding: 24px;
+  }
+
+  .upload-box h2 {
+    font-size: 26px;
+  }
+
+  .upload-area {
+    padding: 30px 18px;
+  }
+
+  .upload-area h3 {
+    font-size: 18px;
+  }
+}
+.role-select {
+  width: 330px;
+  margin: 20px auto 30px;
+}
+
+.role-select select {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.role-select select:hover {
+  border-color: #2563eb;
+}
+
+.role-select select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}

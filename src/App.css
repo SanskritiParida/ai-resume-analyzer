@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  background: #f6fbff;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.app-container {
+  padding: 40px;
+  text-align: center;
+}
