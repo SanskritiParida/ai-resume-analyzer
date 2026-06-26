@@ -36,7 +36,7 @@ function UploadBox({ setResult }) {
     try {
 
       const response = await fetch(
-        "http://localhost:5000/upload-resume",
+        "https://ai-resume-analyzer-api-hjy8.onrender.com/upload-resume",
         {
           method: "POST",
           body: formData,
