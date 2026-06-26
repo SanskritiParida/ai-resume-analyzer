@@ -20,7 +20,23 @@ An AI-powered Full Stack web application that analyzes resumes against a selecte
 * 📱 Responsive User Interface
 
 ---
+## 📸 Screenshots
 
+### 🏠 Home Page
+
+![Home](screenshots/home.png)
+
+---
+
+### 📊 Resume Analysis
+
+![Analysis](screenshots/analysis.png)
+
+---
+
+### 📄 Download ATS Report
+
+![Download](screenshots/download.png)
 ## 🛠 Tech Stack
 
 ### Frontend
