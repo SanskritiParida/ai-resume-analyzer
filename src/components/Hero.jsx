@@ -7,7 +7,7 @@ function Hero() {
       <h1>AI Resume Analyzer</h1>
 
       <p>
-        Get AI-powered insights to improve your resume
+        Compare your resume with actual job requirements using grounded AI extraction
       </p>
 
     </div>

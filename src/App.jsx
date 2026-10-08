@@ -3,10 +3,9 @@ import "./App.css";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import UploadBox from "./components/UploadBox";
-import Footer from "./components/Footer";
 import ResultCard from "./components/ResultCard";
 function App() {
-  const [result, setResult] = useState(null);;
+  const [result, setResult] = useState(null);
   return (
     <div className="app-container">
       <Navbar />

@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 backend/uploads/
 uploads/
+# Keep backend and frontend secrets out of Git; examples contain no secrets.
+.env
+.env.*
+!.env.example
+# Local opt-in model outputs may contain resume data.
+backend/tests/*-output.json
+backend/tests/live-*.json

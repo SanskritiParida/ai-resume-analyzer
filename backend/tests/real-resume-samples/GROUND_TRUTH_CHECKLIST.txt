@@ -1,0 +1,40 @@
+RESUME EXTRACTION VALIDATION - GROUND TRUTH
+
+These are fictional resumes created only for parser testing.
+
+01_single_column_resume.pdf
+- Person: Aarav Mehta
+- Institution: Riverdale Institute of Technology
+- Degree: B.Tech, Computer Science and Engineering
+- Education dates: Aug 2023 - May 2027
+- Employer: Northstar Labs
+- Role: Backend Engineering Intern
+- Internship dates: May 2026 - July 2026
+- Internship technologies: Node.js, Express, PostgreSQL, Redis
+- Project CampusCart: React, Node.js, Express, PostgreSQL
+- Project RouteWise: Java, Dijkstra Algorithm
+PASS EXPECTATION: all facts survive and associations remain correct.
+
+02_two_column_resume.pdf
+- Person: Mira Sen
+- LEFT/sidebar: contact, skills, education, certifications
+- RIGHT/main: profile, experience, projects
+- Institution: Eastern Valley University
+- Degree: B.Tech Information Technology
+- BlueOrbit Systems -> Frontend Intern -> January 2026 - April 2026 -> React, TypeScript, Jest/accessibility work
+- PixelForge Studio -> Web Development Trainee -> June 2025 - August 2025 -> Figma/CSS/mobile layout work
+- EventNest -> Next.js, TypeScript
+- AccessCheck -> React, Jest
+PASS EXPECTATION: facts survive AND employer/role/date/project associations do not become mixed by column interleaving.
+
+03_docx_table_resume.docx
+- Person: Dev Malhotra
+- Institution: Lakeside College of Engineering
+- Employer: Quartz Analytics
+- Role: Data Engineering Intern
+- Dates: June 2026 - August 2026
+- Quartz technologies: Python, PostgreSQL
+- SpendScope -> Python, FastAPI, PostgreSQL; explicitly does NOT use React
+- QueueWatch -> Java
+- Skills table must preserve: Languages/Python-Java-SQL/JavaScript; Backend/FastAPI/Express; Databases/PostgreSQL/SQLite; Tools/Git-Postman/Docker
+PASS EXPECTATION: paragraph content survives and table values remain meaningfully associated with their categories.

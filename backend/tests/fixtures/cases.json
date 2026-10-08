@@ -1,0 +1,101 @@
+[
+  {
+    "file": "single-column.pdf",
+    "format": "pdf",
+    "fragments": [
+      "Synthetic Candidate",
+      "ACADEMIC JOURNEY",
+      "Bachelor of Computing",
+      "Campus Scheduler",
+      "Developer Intern",
+      "Database Fundamentals"
+    ],
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "two-column.pdf",
+    "format": "pdf",
+    "fragments": [
+      "COLUMN_1_ROW_1",
+      "COLUMN_1_ROW_6",
+      "COLUMN_2_ROW_1",
+      "COLUMN_2_ROW_6"
+    ],
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "multi-column.pdf",
+    "format": "pdf",
+    "fragments": [
+      "COLUMN_1_ROW_1",
+      "COLUMN_2_ROW_6",
+      "COLUMN_3_ROW_1",
+      "COLUMN_3_ROW_6"
+    ],
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "table.pdf",
+    "format": "pdf",
+    "fragments": [
+      "Degree",
+      "Institution",
+      "Year",
+      "Bachelor of Computing",
+      "Example University",
+      "2026",
+      "Database Certificate",
+      "Example Training",
+      "2025"
+    ],
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "unusual-headings.pdf",
+    "format": "pdf",
+    "fragments": [
+      "ACADEMIC JOURNEY",
+      "TOOLS AND TECHNOLOGIES",
+      "PROFESSIONAL CONTRIBUTIONS",
+      "CREDENTIALS",
+      "Example University"
+    ],
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "paragraphs-and-table.docx",
+    "format": "docx",
+    "fragments": [
+      "Synthetic Candidate",
+      "ACADEMIC JOURNEY",
+      "Campus Scheduler",
+      "Degree",
+      "Institution",
+      "Year",
+      "Bachelor of Computing",
+      "Example University",
+      "2026",
+      "Database Certificate",
+      "Example Training",
+      "2025"
+    ],
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "image-only.pdf",
+    "format": "pdf",
+    "fragments": [],
+    "quality": "insufficient",
+    "provenance": "synthetic controlled test, not a real resume"
+  },
+  {
+    "file": "mixed-text-image.pdf",
+    "format": "pdf",
+    "fragments": [
+      "Synthetic Candidate",
+      "Campus Scheduler"
+    ],
+    "quality": "suspicious",
+    "provenance": "synthetic controlled test, not a real resume"
+  }
+]

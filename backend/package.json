@@ -4,16 +4,21 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/extraction.test.js tests/analyzeResume.test.js tests/analyzeJobMatch.test.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "test:ai:live": "node --env-file-if-exists=.env tests/manual-ai.cjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^2.27.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "mammoth": "^1.13.0",
     "multer": "^2.2.0",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "zod": "^4.6.5"
   }
 }

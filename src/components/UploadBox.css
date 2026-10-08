@@ -24,7 +24,8 @@
   color: #334155;
 }
 
-.upload-box input[type="text"] {
+.upload-box input[type="text"],
+.upload-box textarea {
   width: 100%;
   padding: 14px 16px;
   font-size: 16px;
@@ -36,7 +37,8 @@
   box-sizing: border-box;
 }
 
-.upload-box input[type="text"]:focus {
+.upload-box input[type="text"]:focus,
+.upload-box textarea:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
