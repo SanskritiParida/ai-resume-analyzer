@@ -90,7 +90,7 @@ async function extractResumeText(filePath, format) {
     { code: format === "pdf" ? "PDF_EXTRACTION_FAILED" : "DOCX_EXTRACTION_FAILED" });
   } finally {
     if (parser) {
-      await parser.destroy().catch((error) => console.error("PDF cleanup failed:", error));
+      await parser.destroy().catch((error) => console.error("PDF cleanup failed:", error.code || "CLEANUP_ERROR"));
     }
   }
 

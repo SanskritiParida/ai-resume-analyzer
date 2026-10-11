@@ -89,11 +89,12 @@ test("Programming error after extraction remains an analysis error", async () =>
   multer.diskStorage = (storage) => storage;
   const context = {
     require: (name) => ({
-      express: () => app, cors: () => () => {}, multer,
+      "./loadEnvironment": { loadEnvironment() {} }, express: () => app, cors: () => () => {}, multer,
       "node:fs": { mkdirSync() {}, promises: { unlink: async () => { removed = true; } } },
       "node:path": path,
       "./analyzeResume": { analyzeResume: async () => ({}), AIError: class extends Error {} },
       "./analyzeJobMatch": require("../analyzeJobMatch"),
+      "./resumeReview": require("../resumeReview"),
       "./extractResumeText": { extractResumeText: async () => ({ text: { toLowerCase() { throw new Error("Injected analyzer failure"); } }, pages: [], extractionQuality: "good", warnings: [] }) },
     })[name],
     __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
@@ -141,6 +142,13 @@ test("Real HTTP uploads preserve Phase 1 validation, errors, success fields and 
       for (const key of ["skillsFound", "missingSkills", "suggestions", "resumeTips", "insights"]) assert.ok(Array.isArray(result.body[key]));
       assert.ok(!Object.hasOwn(result.body.extraction, "text"), "Do not send full resume text to the UI");
     }
+    const general = await post({ role: null, analysisMode: 'general' });
+    assert.equal(general.status, 200);
+    assert.equal(general.body.analysisMode, 'general');
+    assert.ok(general.body.structuredResume);
+    assert.ok(!Object.hasOwn(general.body, 'score'));
+    const generalDOCX = await post({ role: null, file: 'paragraphs-and-table.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    assert.equal(generalDOCX.body.analysisMode, 'general');
     const docx = await post({ file: "paragraphs-and-table.docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
     assert.equal(docx.status, 200);
     assert.equal(docx.body.extraction.format, "docx");
@@ -148,8 +156,9 @@ test("Real HTTP uploads preserve Phase 1 validation, errors, success fields and 
     const jobMatch = await post({ jd: "Python required.", analysisMode: "job", role: null });
     assert.equal(jobMatch.status, 200);
     assert.equal(jobMatch.body.analysisMode, "job");
-    assert.equal(jobMatch.body.jobMatch.score, 0);
-    assert.equal(jobMatch.body.jobMatch.missingRequirements[0].subject, "Python");
+    assert.equal(jobMatch.body.jobMatch.score, null);
+    assert.equal(jobMatch.body.jobMatch.scoringStatus, 'insufficient_detail');
+    assert.ok(jobMatch.body.resumeReview.recommendations.length > 0);
     assert.ok(!Object.hasOwn(jobMatch.body, "score"), "Legacy keyword score must not masquerade as JD score");
     const jdPriority = await post({ jd: "Python required.", role: "frontend developer" });
     assert.equal(jdPriority.body.analysisMode, "job");
@@ -178,7 +187,7 @@ test("Real HTTP uploads preserve Phase 1 validation, errors, success fields and 
       [{ bytes: Buffer.from("corrupt PDF") }, 422, "PDF_EXTRACTION_FAILED"],
       [{ file: "paragraphs-and-table.docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", bytes: Buffer.from("not a zip") }, 422, "DOCX_EXTRACTION_FAILED"],
       [{ file: "image-only.pdf" }, 422, "INSUFFICIENT_EXTRACTION"],
-      [{ role: null }, 400, undefined],
+
       [{ role: "constructor" }, 400, undefined],
     ]) {
       const result = await post(input);
@@ -209,12 +218,13 @@ test("AI stage returns safe HTTP errors and always removes the upload", async ()
     multer.diskStorage = (storage) => storage;
     const context = {
       require: (name) => ({
-        express: () => app, cors: () => () => {}, multer,
+        "./loadEnvironment": { loadEnvironment() {} }, express: () => app, cors: () => () => {}, multer,
         "node:fs": { mkdirSync() {}, promises: { unlink: async () => { removed = true; } } },
         "node:path": path,
         "./extractResumeText": { extractResumeText: async () => ({ text: "Source text", extractionQuality: "good", warnings: [] }) },
         "./analyzeResume": { AIError, analyzeResume: async () => { throw new AIError(code, status, "Safe analysis failure"); } },
         "./analyzeJobMatch": require("../analyzeJobMatch"),
+        "./resumeReview": require("../resumeReview"),
       })[name],
       __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
     };
@@ -223,7 +233,7 @@ test("AI stage returns safe HTTP errors and always removes the upload", async ()
     await route({ file: { path: "unused.pdf", originalname: "resume.pdf", size: 100 }, body: { role: "frontend developer" } }, response);
     assert.equal(response.statusCode, status);
     assert.equal(response.body.code, code);
-    assert.deepEqual(Object.keys(response.body).sort(), ["code", "message"]);
+    assert.deepEqual(Object.keys(response.body).sort(), ["code", "message", "stage"]);
     assert.ok(removed);
   }
 });
@@ -236,16 +246,17 @@ test("JD provider/evidence failures stay in the job-match stage and clean up upl
     const app = { use() {}, get() {}, post(p, middleware, handler) { route = handler; }, listen() {} };
     const multer = () => ({ single: () => () => {} }); multer.diskStorage = storage => storage;
     const context = {
-      require: name => ({ express: () => app, cors: () => () => {}, multer,
+      require: name => ({ "./loadEnvironment": { loadEnvironment() {} }, express: () => app, cors: () => () => {}, multer,
         "node:fs": { mkdirSync() {}, promises: { unlink: async () => { removed = true; } } }, "node:path": path,
         "./extractResumeText": { extractResumeText: async () => ({ text: "Source text", extractionQuality: "good", warnings: [] }) },
         "./analyzeResume": { AIError, analyzeResume: async () => ({}) },
         "./analyzeJobMatch": { validateJobDescription: value => value, analyzeJobMatch: async () => { throw new AIError(code, 502, "Safe JD failure"); } },
+        "./resumeReview": require("../resumeReview"),
       })[name], __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
     };
     vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
     const response = { status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; } };
-    await route({ file: { path: "unused.pdf", originalname: "resume.pdf", size: 100 }, body: { jobDescription: "Python required." } }, response);
+    await route({ file: { path: "unused.pdf", originalname: "resume.pdf", size: 100 }, body: { jobDescription: "We are hiring a backend developer to maintain data services and collaborate with our engineering team on reliable application delivery. Requirements include Python, Java and SQL skills with clearly documented projects and relevant work examples." } }, response);
     assert.equal(response.statusCode, 502); assert.equal(response.body.code, code);
     assert.equal(response.body.stage, "job_match"); assert.ok(removed);
     assert.ok(!Object.hasOwn(response.body, "jobMatch"));
