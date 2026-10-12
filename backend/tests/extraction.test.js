@@ -66,7 +66,8 @@ test("Parser failure releases PDF resources and keeps a format-specific error", 
   const context = {
     require: (name) => ({
       "node:fs/promises": { readFile: async () => Buffer.from("PDF") },
-      "pdf-parse": { PDFParse: class { async getText() { throw new Error("Corrupt input"); } async destroy() { destroyed = true; } } },
+      "pdf-parse/worker": { getData: () => "test-worker" },
+      "pdf-parse": { PDFParse: class { static setWorker() {} async getText() { throw new Error("Corrupt input"); } async destroy() { destroyed = true; } } },
       mammoth: {},
     })[name],
     module: { exports: {} }, console,

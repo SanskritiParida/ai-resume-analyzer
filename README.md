@@ -91,7 +91,7 @@ In one terminal, from `backend`: `npm start` (loads local `.env`). You can also 
 
 ## Testing
 
-From `backend`: `npm test` — 90 automated tests, including real parsing, HTTP uploads/errors/cleanup, schema/evidence checks, negation/injection, deterministic scoring, detail gating, aliases and writing feedback. Provider responses are mocked in automated tests; no API key or paid request is needed.
+From `backend`: `npm test` — 91 automated tests, including real parsing, HTTP uploads/errors/cleanup, schema/evidence checks, negation/injection, deterministic scoring, detail gating, aliases and writing feedback. Provider responses are mocked in automated tests; no API key or paid request is needed.
 
 From the root: `npm test` — nine dashboard rendering/presentation regressions; `npm run lint`; `npm run build`. Backend syntax can be checked with `node --check backend/server.js` and the extraction/analysis/review modules.
 
@@ -139,7 +139,7 @@ The backend exports its app and does not start a listener on Vercel. Local node 
 ### Manual dashboard steps — no new project
 
 1. Open the existing ai-resume-analyzer project at Vercel. Keep the existing domain and GitHub repository. Set Root Directory to the repository root (blank or .), Framework Preset Vite, Node.js 22.x, and enable Fluid compute. Leave Automatically expose System Environment Variables enabled so the runtime identifies itself as Vercel.
-2. vercel.json specifies Install Command: npm ci && npm ci --prefix backend; Build Command: npm run build; Output Directory: dist. Remove conflicting dashboard overrides. Both package lockfiles remain authoritative; no new dependencies were added.
+2. vercel.json specifies Install Command: npm ci --include=optional && npm ci --prefix backend --include=optional && npm run --prefix backend check:pdf-runtime; Build Command: npm run build; Output Directory: dist. Remove conflicting dashboard overrides. Both package lockfiles remain authoritative; no new dependencies were added.
 3. In Settings → Environment Variables, add GEMINI_API_KEY using your existing real key for Production and any Preview environment you intend to test. This is a SERVER secret. Never name it VITE_GEMINI_API_KEY or copy it into frontend code.
 4. Remove the old VITE_API_URL override, or explicitly set VITE_API_URL=/api in those environments. Never use localhost in a production build. Optional GEMINI_MODEL=gemini-3.5-flash-lite preserves the validated model; GEMINI_TIMEOUT_MS may remain unset (existing default 45000). PORT, VERCEL and NODE_ENV do not need manual configuration. Leave diagnostic flags unset in production.
 5. Commit/push the reviewed changes to the existing connected production branch and redeploy THAT project, with build cache disabled for the first deployment so both dependency trees and API functions are built. Environment changes require a new deployment; they do not alter an old frontend bundle.
@@ -150,3 +150,17 @@ Vercel permits a 4.5 MB TOTAL function request body. Multipart overhead and JD t
 References: [Vercel Node functions](https://vercel.com/docs/functions/runtimes/node-js), [function limits](https://vercel.com/docs/functions/limitations), [configuration](https://vercel.com/docs/project-configuration/vercel-json).
 
 Automated serverless adapter tests use real multipart HTTP/PDF/DOCX parsing and production validation with mocked Gemini responses. Runtime-specific hosting and the final live URL must be verified AFTER the manual deployment; no push or deploy was performed by the assistant.
+
+## Native PDF dependency deployment repair
+
+The October 12 runtime exception confirmed a missing @napi-rs/canvas module in the deployed PDF parser dependency path, followed by DOMMatrix is not defined and process exit. Previously even health imported that parser through the backend. Local simulation of the missing package reproduced the same warning and fatal exception.
+
+Health now has an independent Node handler with no PDF, canvas, SDK or upload-storage import. A healthy response still checks only server reachability and key presence; it does not certify PDF parsing or Gemini availability. The extractor loads format-specific libraries only on the corresponding document path. Before pdf-parse, PDF resumes use the supported pdf-parse/worker bootstrap and embedded worker data, which initialize real canvas globals without fake polyfills. The installed pdf-parse/node entry exports getHeader, not PDFParse, so it cannot replace this text parser.
+
+@napi-rs/canvas 0.1.80 is now an explicit backend dependency at the same already-locked version. No parser/provider upgrade was made. Vercel installation explicitly includes optional dependencies and runs check:pdf-runtime, so missing or incompatible native dependencies fail the build early instead of producing a misleading Ready deployment; the upload function includes the canvas loader, installed platform-specific native package files, and PDF worker assets. The health bundle has none of these includeFiles. Fresh Linux builds must install their own Linux binary; never upload Windows node_modules.
+
+Keep Node.js 22.x, Fluid compute and system environment exposure enabled in the same existing Vercel project. Remove install-command overrides/omit-optional settings that conflict with vercel.json. Redeploy without build cache after committing this repair, then check BOTH endpoints. Missing-file POST should return application JSON HTTP 400, not platform HTTP 500. Only an actual successful PDF upload confirms deployed extraction and analysis. In the event of a missing PDF runtime, PDF requests now return honest PDF_RUNTIME_UNAVAILABLE HTTP 503; DOCX and health can still work. This error handling does not replace the required native-package installation fix.
+
+The regression suite exercises startup, health, missing-file POST, honest PDF failure and successful DOCX with canvas forcibly unavailable in a fresh process. Ordinary extraction tests still parse real PDF fixtures and verify their expected text using the real native dependency. Evidence/negation/scoring tests remain in place. No deployment was performed; Vercel success must be confirmed after the manual redeployment.
+
+References: [pdf-parse troubleshooting](https://github.com/mehmet-kozan/pdf-parse/blob/main/docs/troubleshooting.md), [Vercel file tracing](https://vercel.com/kb/guide/how-can-i-use-files-in-serverless-functions).

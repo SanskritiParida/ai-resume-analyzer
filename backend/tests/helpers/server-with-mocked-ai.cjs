@@ -1,3 +1,15 @@
+// Reproduce a missing native dependency in a fresh process, without touching packages.
+if (process.env.TEST_MISSING_CANVAS) {
+  const Module = require("node:module");
+  const original = Module._load;
+  Module._load = function (name, ...args) {
+    if (name === "@napi-rs/canvas" || name.startsWith("@napi-rs/canvas-"))
+      throw Object.assign(new Error("Simulated missing native canvas"), {
+        code: "MODULE_NOT_FOUND",
+      });
+    return original.call(this, name, ...args);
+  };
+}
 // Only the provider boundary is stubbed. Production schema/evidence validation runs.
 const ai = require("../../analyzeResume");
 const real = ai.analyzeResume;
@@ -57,11 +69,26 @@ const jobClient = {
 jobs.analyzeJobMatch = (resume, jd, options) =>
   realJobMatch(resume, jd, { ...options, client: jobClient });
 if (process.env.TEST_VERCEL_ADAPTER) {
-  Promise.all([import("../../../api/upload-resume.js"), import("../../../api/health.js")]).then(([upload, health]) => {
-    require("node:http").createServer((req, res) => {
-      if (["/api/upload-resume", "/upload-resume"].includes(req.url)) return upload.default(req, res);
-      if (["/api/health", "/health"].includes(req.url)) return health.default(req, res);
-      res.writeHead(404); res.end();
-    }).listen(0, "127.0.0.1", function () { console.log("SERVERLESS_TEST_PORT=" + this.address().port); });
-  }).catch(error => { console.error(error.name); process.exitCode = 1; });
+  Promise.all([
+    import("../../../api/upload-resume.js"),
+    import("../../../api/health.js"),
+  ])
+    .then(([upload, health]) => {
+      require("node:http")
+        .createServer((req, res) => {
+          if (["/api/upload-resume", "/upload-resume"].includes(req.url))
+            return upload.default(req, res);
+          if (["/api/health", "/health"].includes(req.url))
+            return health.default(req, res);
+          res.writeHead(404);
+          res.end();
+        })
+        .listen(0, "127.0.0.1", function () {
+          console.log("SERVERLESS_TEST_PORT=" + this.address().port);
+        });
+    })
+    .catch((error) => {
+      console.error(error.name);
+      process.exitCode = 1;
+    });
 } else require("../../server");

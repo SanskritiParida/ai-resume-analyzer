@@ -522,16 +522,24 @@ app.post(
       }
       console.error(`${stage} failed:`, error.code || "INTERNAL_ERROR");
 
-      res.status(stage === "extraction" ? 422 : 500).json({
-        code:
+      res
+        .status(
           stage === "extraction"
-            ? error.code || "EXTRACTION_FAILED"
-            : "ANALYSIS_FAILED",
-        message:
-          stage === "extraction"
-            ? error.message
-            : "Resume text was extracted, but resume analysis failed. Please try again.",
-      });
+            ? error.code === "PDF_RUNTIME_UNAVAILABLE"
+              ? 503
+              : 422
+            : 500,
+        )
+        .json({
+          code:
+            stage === "extraction"
+              ? error.code || "EXTRACTION_FAILED"
+              : "ANALYSIS_FAILED",
+          message:
+            stage === "extraction"
+              ? error.message
+              : "Resume text was extracted, but resume analysis failed. Please try again.",
+        });
     } finally {
       res.removeListener?.("close", onDisconnect);
       timing("request_total", started);

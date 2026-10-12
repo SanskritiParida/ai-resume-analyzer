@@ -204,3 +204,92 @@ test("Serverless adapter preserves multipart PDF/DOCX, JD verification, validati
     if (!fs.readdirSync(temp).length) fs.rmdirSync(temp);
   }
 });
+
+test("Missing native canvas cannot crash health or DOCX; PDF returns an honest runtime error", async () => {
+  const child = spawn(
+    process.execPath,
+    [path.join(__dirname, "helpers/server-with-mocked-ai.cjs")],
+    {
+      env: {
+        ...process.env,
+        VERCEL: "1",
+        NODE_ENV: "production",
+        TEST_VERCEL_ADAPTER: "1",
+        TEST_MISSING_CANVAS: "1",
+        GEMINI_API_KEY: "",
+      },
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  try {
+    const port = await new Promise((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error("Backend failed to initialize without canvas")),
+        15000,
+      );
+      child.once("error", (e) => {
+        clearTimeout(timer);
+        reject(e);
+      });
+      child.once("exit", () => {
+        clearTimeout(timer);
+        reject(new Error("Backend startup crash"));
+      });
+      child.stdout.on("data", (chunk) => {
+        const match = String(chunk).match(/SERVERLESS_TEST_PORT=(\d+)/);
+        if (match) {
+          clearTimeout(timer);
+          resolve(Number(match[1]));
+        }
+      });
+    });
+    const base = `http://127.0.0.1:${port}`;
+    const health = await fetch(base + "/api/health");
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).status, "ok");
+    const missing = await fetch(base + "/api/upload-resume", {
+      method: "POST",
+      body: new FormData(),
+    });
+    assert.equal(missing.status, 400);
+    assert.equal((await missing.json()).code, "MISSING_FILE");
+    for (const [file, mime, status] of [
+      ["single-column.pdf", "application/pdf", 503],
+      [
+        "paragraphs-and-table.docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        200,
+      ],
+    ]) {
+      const body = new FormData();
+      body.append(
+        "resume",
+        new Blob([fs.readFileSync(path.join(__dirname, "fixtures", file))], {
+          type: mime,
+        }),
+        file,
+      );
+      body.append("analysisMode", "general");
+      const response = await fetch(base + "/api/upload-resume", {
+        method: "POST",
+        body,
+      });
+      const result = await response.json();
+      assert.equal(response.status, status);
+      if (status === 503) {
+        assert.equal(result.code, "PDF_RUNTIME_UNAVAILABLE");
+        assert.ok(!/DOMMatrix|Require stack|Simulated/.test(result.message));
+      } else {
+        assert.equal(result.extraction.format, "docx");
+        assert.ok(result.structuredResume);
+      }
+    }
+  } finally {
+    child.kill();
+    await new Promise((resolve) => {
+      if (child.exitCode !== null) resolve();
+      else child.once("exit", resolve);
+    });
+  }
+});
