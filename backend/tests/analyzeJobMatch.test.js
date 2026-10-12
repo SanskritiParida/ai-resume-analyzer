@@ -323,3 +323,34 @@ test("A correction cannot silently drop a source-grounded requirement or alter i
     assert.equal(calls, 2);
   }
 });
+
+test("Exact Frontend Developer paragraph verifies preferred Node.js outside its short evidence quote", () => {
+  const jd = "Frontend Developer\nWe are seeking a Frontend Developer proficient in HTML, CSS, JavaScript, and React.js. The candidate should have experience building responsive web applications, integrating REST APIs, using Git/GitHub, debugging applications, and creating user-friendly interfaces. Knowledge of Node.js, UI/UX principles, and performance optimization is preferred.";
+  const value = resume(); value.skills.push({ name: "Node.js", category: null, evidence: "Node.js" });
+  const items = [
+    ["HTML", "HTML"], ["CSS", "CSS"], ["JavaScript", "JavaScript"], ["React.js", "React.js"],
+    ["building responsive web applications", "responsive web applications"], ["integrating REST APIs", "REST APIs"],
+    ["using Git/GitHub", "GitHub"], ["debugging applications", "debugging"], ["creating user-friendly interfaces", "user-friendly interfaces"],
+  ].map(([quote, subject]) => requirement(quote, subject, "NOT_EVIDENCED", []));
+  items.push(requirement("Node.js", "Node.js", "MATCHED", ["skills.3.name"], "preferred"));
+  items.push(requirement("UI/UX principles", "UI/UX principles", "NOT_EVIDENCED", [], "preferred"));
+  items.push(requirement("performance optimization", "performance optimization", "NOT_EVIDENCED", [], "preferred"));
+  const result = validateAndScore(candidate(items), resumeFacts(value), jd);
+  assert.equal(result.requirements[9].importance, "preferred");
+  assert.equal(result.calculation.totalWeight, 21); assert.equal(result.calculation.earnedWeight, 1);
+  assert.equal(result.score, 5);
+  items[9].importance = "required";
+  assert.throws(() => validateAndScore(candidate(items), resumeFacts(value), jd), e => e.diagnostics.requirementIndex === 9 && e.diagnostics.reason === "PRIORITY_MISMATCH");
+  items[9].importance = "preferred"; items[9].factIds = ["invented.fact"];
+  assert.throws(() => validateAndScore(candidate(items), resumeFacts(value), jd), e => e.diagnostics.reason === "UNKNOWN_FACT_ID");
+});
+
+test("Inline preference cannot spill across sentences or semicolons, or invent unsupported credit", () => {
+  const jd = "Python required; Java knowledge is preferred. Docker required. Optional knowledge of TypeScript is preferred.";
+  const items = [requirement("Python", "Python", "MATCHED", ["skills.0.name"]), requirement("Java", "Java", "MATCHED", ["skills.1.name"], "preferred"), requirement("Docker", "Docker", "MATCHED", ["skills.2.name"]), requirement("TypeScript", "TypeScript", "NOT_EVIDENCED", [], "preferred")];
+  const result = validateAndScore(candidate(items), resumeFacts(resume()), jd);
+  assert.equal(result.calculation.totalWeight, 6); assert.equal(result.calculation.earnedWeight, 5);
+  assert.equal(result.missingRequirements[0].support.length, 0);
+  items[0].importance = "preferred";
+  assert.throws(() => validateAndScore(candidate(items), resumeFacts(resume()), jd), e => e.diagnostics.reason === "PRIORITY_MISMATCH");
+});

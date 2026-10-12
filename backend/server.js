@@ -494,6 +494,31 @@ app.post(
           "Job matching failed:",
           known ? error.code : "JD_INTERNAL_ERROR",
         );
+        if (
+          known &&
+          error.code === "JD_EVIDENCE_VALIDATION_FAILED" &&
+          error.diagnostics
+        ) {
+          const { requirementIndex, field, reason } = error.diagnostics;
+          // Fixed validator labels only; never log facts, quotes or provider bodies.
+          if (
+            Number.isInteger(requirementIndex) &&
+            requirementIndex >= 0 &&
+            requirementIndex < 30 &&
+            ["requirement", "subject", "importance", "factIds"].includes(
+              field,
+            ) &&
+            /^[A-Z_]+$/.test(reason)
+          )
+            console.error(
+              JSON.stringify({
+                stage: "jd_evidence_rejection",
+                requirementIndex,
+                field,
+                reason,
+              }),
+            );
+        }
         return res.status(known ? error.status : 500).json({
           code: known ? error.code : "JD_INTERNAL_ERROR",
           message: known

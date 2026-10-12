@@ -91,7 +91,7 @@ In one terminal, from `backend`: `npm start` (loads local `.env`). You can also 
 
 ## Testing
 
-From `backend`: `npm test` — 91 automated tests, including real parsing, HTTP uploads/errors/cleanup, schema/evidence checks, negation/injection, deterministic scoring, detail gating, aliases and writing feedback. Provider responses are mocked in automated tests; no API key or paid request is needed.
+From `backend`: `npm test` — 93 automated tests, including real parsing, HTTP uploads/errors/cleanup, schema/evidence checks, negation/injection, deterministic scoring, detail gating, aliases and writing feedback. Provider responses are mocked in automated tests; no API key or paid request is needed.
 
 From the root: `npm test` — nine dashboard rendering/presentation regressions; `npm run lint`; `npm run build`. Backend syntax can be checked with `node --check backend/server.js` and the extraction/analysis/review modules.
 
@@ -164,3 +164,11 @@ Keep Node.js 22.x, Fluid compute and system environment exposure enabled in the 
 The regression suite exercises startup, health, missing-file POST, honest PDF failure and successful DOCX with canvas forcibly unavailable in a fresh process. Ordinary extraction tests still parse real PDF fixtures and verify their expected text using the real native dependency. Evidence/negation/scoring tests remain in place. No deployment was performed; Vercel success must be confirmed after the manual redeployment.
 
 References: [pdf-parse troubleshooting](https://github.com/mehmet-kozan/pdf-parse/blob/main/docs/troubleshooting.md), [Vercel file tracing](https://vercel.com/kb/guide/how-can-i-use-files-in-serverless-functions).
+
+## Inline JD preference verification
+
+The exact Frontend Developer paragraph reproduced a JD_EVIDENCE_VALIDATION_FAILED locally with the supplied personal PDF. After the existing bounded correction, requirement index 9 quoted Node.js and correctly marked it preferred, but the verifier defaulted the short quote to required because it only checked quoted words and headings. Zod passed; the actual preference appears later in the same source sentence.
+
+Priority now also checks an unambiguous literal source clause around the exact quote. Sentence boundaries do not split dots inside Node.js/React.js, and preferences do not spill into earlier sentences or across semicolons. Mixed required/preferred or negated clauses are not guessed. Exact quotation, fact-ID, positive-support, duplication, negation, schema and scoring checks remain enforced. The scoring weights/formula and correction bound are unchanged.
+
+Production failure logs now retain only a safe zero-based requirementIndex, field and reason, never quoted JD/resume values or provider response bodies. Regression tests use the exact public JD with fictional resume facts; no personal PDF or extracted facts were added to repository fixtures. The final local real-Gemini HTTP upload passed with independently reverified source evidence and matching; the hosted result still requires redeployment and an actual upload test.

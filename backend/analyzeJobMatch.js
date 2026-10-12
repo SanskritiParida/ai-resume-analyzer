@@ -185,9 +185,36 @@ function minimumYears(text) {
   return match ? Number(match[1]) : null;
 }
 
+// Read priority only from the literal source clause containing the exact quote.
+// Dots inside Node.js/React.js are not sentence boundaries.
+function requirementClause(jd, quote) {
+  const position = jd.indexOf(quote);
+  const finish = position + quote.length;
+  let start = 0;
+  let end = jd.length;
+  for (const match of jd.matchAll(/[.!?;](?=\s|$)|\r?\n/g)) {
+    const after = match.index + match[0].length;
+    if (after <= position) start = after;
+    else if (match.index >= finish) {
+      end = after;
+      break;
+    }
+  }
+  return jd.slice(start, end);
+}
+
 function requirementImportance(jd, quote) {
   if (preferred.test(quote)) return "preferred";
   if (/\brequired\b|\bmust\b|\bmandatory\b/i.test(quote)) return "required";
+  const clause = requirementClause(jd, quote);
+  // Mixed/negated clauses are deliberately not guessed. Existing exact quoted
+  // qualifiers and section headings remain authoritative in those cases.
+  if (
+    preferred.test(clause) &&
+    !/\brequired\b|\bmust\b|\bmandatory\b/i.test(clause) &&
+    !notRequired.test(clause)
+  )
+    return "preferred";
   const before = jd.slice(0, jd.indexOf(quote));
   // Carry explicit section headings, but never invent an implicit preference.
   const headings = before

@@ -246,6 +246,7 @@ test("JD provider/evidence failures stay in the job-match stage and clean up upl
   const { AIError } = require("../analyzeResume");
   for (const code of ["JD_PROVIDER_ERROR", "JD_EVIDENCE_VALIDATION_FAILED"]) {
     let route;
+    const logs = [];
     let removed = false;
     const app = { use() {}, get() {}, post(p, middleware, handler) { route = handler; }, listen() {} };
     const multer = () => ({ single: () => () => {} }); multer.diskStorage = storage => storage;
@@ -254,9 +255,9 @@ test("JD provider/evidence failures stay in the job-match stage and clean up upl
         "node:fs": { mkdirSync() {}, promises: { unlink: async () => { removed = true; } } }, "node:path": path,
         "./extractResumeText": { extractResumeText: async () => ({ text: "Source text", extractionQuality: "good", warnings: [] }) },
         "./analyzeResume": { AIError, analyzeResume: async () => ({}) },
-        "./analyzeJobMatch": { validateJobDescription: value => value, analyzeJobMatch: async () => { throw new AIError(code, 502, "Safe JD failure"); } },
+        "./analyzeJobMatch": { validateJobDescription: value => value, analyzeJobMatch: async () => { throw Object.assign(new AIError(code, 502, "Safe JD failure"), { diagnostics: { requirementIndex: 9, field: "importance", reason: "PRIORITY_MISMATCH", privateValue: "PRIVATE_RESUME_CONTENT" } }); } },
         "./resumeReview": require("../resumeReview"),
-      })[name], __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
+      })[name], __dirname: backend, process: { env: { NODE_ENV: "production" } }, console: { log() {}, error(...args) { logs.push(args.join(" ")); } },
     };
     context.module ||= { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
@@ -265,6 +266,11 @@ test("JD provider/evidence failures stay in the job-match stage and clean up upl
     assert.equal(response.statusCode, 502); assert.equal(response.body.code, code);
     assert.equal(response.body.stage, "job_match"); assert.ok(removed);
     assert.ok(!Object.hasOwn(response.body, "jobMatch"));
+    assert.ok(!logs.join(" ").includes("PRIVATE_RESUME_CONTENT"));
+    if (code === "JD_EVIDENCE_VALIDATION_FAILED") {
+      const diagnostics = JSON.parse(logs.find(line => line.startsWith("{")));
+      assert.deepEqual(diagnostics, { stage: "jd_evidence_rejection", requirementIndex: 9, field: "importance", reason: "PRIORITY_MISMATCH" });
+    }
   }
 });
 
