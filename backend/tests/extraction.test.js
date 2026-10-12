@@ -71,6 +71,7 @@ test("Parser failure releases PDF resources and keeps a format-specific error", 
     })[name],
     module: { exports: {} }, console,
   };
+  context.module ||= { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(backend, "extractResumeText.js"), "utf8"), context);
   await assert.rejects(context.module.exports.extractResumeText("unused.pdf", "pdf"), (error) => error.code === "PDF_EXTRACTION_FAILED");
   assert.ok(destroyed);
@@ -99,6 +100,7 @@ test("Programming error after extraction remains an analysis error", async () =>
     })[name],
     __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
   };
+  context.module ||= { exports: {} };
   vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
   const response = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; } };
   await route({ file: { path: "unused.pdf", originalname: "resume.pdf", size: 100 }, body: { role: "frontend developer" } }, response);
@@ -228,7 +230,8 @@ test("AI stage returns safe HTTP errors and always removes the upload", async ()
       })[name],
       __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
     };
-    vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
+    context.module ||= { exports: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
     const response = { status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; } };
     await route({ file: { path: "unused.pdf", originalname: "resume.pdf", size: 100 }, body: { role: "frontend developer" } }, response);
     assert.equal(response.statusCode, status);
@@ -254,7 +257,8 @@ test("JD provider/evidence failures stay in the job-match stage and clean up upl
         "./resumeReview": require("../resumeReview"),
       })[name], __dirname: backend, process: { env: {} }, console: { log() {}, error() {} },
     };
-    vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
+    context.module ||= { exports: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(backend, "server.js"), "utf8"), context);
     const response = { status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; } };
     await route({ file: { path: "unused.pdf", originalname: "resume.pdf", size: 100 }, body: { jobDescription: "We are hiring a backend developer to maintain data services and collaborate with our engineering team on reliable application delivery. Requirements include Python, Java and SQL skills with clearly documented projects and relevant work examples." } }, response);
     assert.equal(response.statusCode, 502); assert.equal(response.body.code, code);

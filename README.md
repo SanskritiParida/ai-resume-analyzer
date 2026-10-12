@@ -81,7 +81,7 @@ GEMINI_MODEL=gemini-3.5-flash-lite
 - `PORT`: optional backend port; default 5000.
 - `GEMINI_TIMEOUT_MS`: optional per-model deadline, default 45,000 ms; accepted range 1,000–60,000 ms. Invalid values fall back to the default. Automatic retries remain disabled. The frontend waits at most 140 seconds to cover two capped model calls and extraction. Disconnecting cancels the active provider request.
 - `DEV_ANALYSIS_TIMING=true`: development-only stage duration, model/status and input character counts. Production suppresses these logs. Resume text, provider error bodies and API keys are never logged.
-- `VITE_API_URL`: frontend backend base URL, e.g. `http://localhost:5000`. Vite reads it at startup/build time; restart/rebuild after changing it. Without it, development uses `http://localhost:5000`; production keeps the existing Render fallback. Set `VITE_API_URL` explicitly for deployment. A local key does not configure Render; hosting secrets must be set separately.
+- `VITE_API_URL`: frontend backend base URL, e.g. `http://localhost:5000`. Vite reads it at startup/build time; restart/rebuild after changing it. Without it, development uses `http://localhost:5000`; production uses same-origin `/api`. On the existing Vercel project remove `VITE_API_URL` or set it to `/api`. Use an absolute URL only for an intentionally separate backend. Local secrets do not configure deployed services.
 
 Examples contain no credentials. `.env`/environment variants, uploads, node_modules and build output are ignored by Git.
 
@@ -91,7 +91,7 @@ In one terminal, from `backend`: `npm start` (loads local `.env`). You can also 
 
 ## Testing
 
-From `backend`: `npm test` — 80 automated tests, including real parsing, HTTP uploads/errors/cleanup, schema/evidence checks, negation/injection, deterministic scoring, detail gating, aliases and writing feedback. Provider responses are mocked in automated tests; no API key or paid request is needed.
+From `backend`: `npm test` — 90 automated tests, including real parsing, HTTP uploads/errors/cleanup, schema/evidence checks, negation/injection, deterministic scoring, detail gating, aliases and writing feedback. Provider responses are mocked in automated tests; no API key or paid request is needed.
 
 From the root: `npm test` — nine dashboard rendering/presentation regressions; `npm run lint`; `npm run build`. Backend syntax can be checked with `node --check backend/server.js` and the extraction/analysis/review modules.
 
@@ -127,3 +127,26 @@ During this refinement a real Gemini resume response took 35.8 seconds (beyond t
 The October 8 live investigation reproduced a 45-second timeout while awaiting Gemini, before response parsing or evidence verification. Tiny probes also returned HTTP 503; subsequent real browser resume-only and resume-plus-JD uploads passed in 13.7 and 23.2 seconds. The intermittent upstream latency cause remains unconfirmed; these successes do not establish that timeouts are eliminated.
 
 Development diagnostics now mark stage start/end without logging source text or keys. Set DEV_ANALYSIS_TIMING=true for the backend and VITE_ANALYSIS_TIMING=true before starting Vite for browser timings. Client cancellation is distinguished from model timeout. Backend startup now fails truthfully with a nonzero exit when its port is occupied, instead of reporting success while an older process continues serving. Model, deadlines, scoring and strict verification are unchanged.
+
+## Existing Vercel project deployment
+
+The October 11 production inspection confirmed that the deployed frontend called the old hardcoded Render backend. That endpoint returned AI_NOT_CONFIGURED, while the Vercel upload routes returned 404. An active Render service exists; its ownership/dashboard configuration was not verified. This fix does not rely on it.
+
+The same repository now builds the Vite frontend and Node functions in the EXISTING Vercel project. Production uploads go to /api/upload-resume, whose adapter forwards the untouched multipart stream to the existing Express /upload-resume route. /upload-resume remains available through a rewrite. /api/health (also /health) reports backend reachability and a credential-presence boolean, never a key. It does not prove Gemini authentication or availability.
+
+The backend exports its app and does not start a listener on Vercel. Local node backend/server.js and npm start keep their current behavior. Vercel uploads use the runtime temp directory, random filenames without personal names, and the same finally cleanup. Deployed configuration never loads a local .env. Strict extraction, schema/evidence checks, negation/injection safeguards and scoring are unchanged.
+
+### Manual dashboard steps — no new project
+
+1. Open the existing ai-resume-analyzer project at Vercel. Keep the existing domain and GitHub repository. Set Root Directory to the repository root (blank or .), Framework Preset Vite, Node.js 22.x, and enable Fluid compute. Leave Automatically expose System Environment Variables enabled so the runtime identifies itself as Vercel.
+2. vercel.json specifies Install Command: npm ci && npm ci --prefix backend; Build Command: npm run build; Output Directory: dist. Remove conflicting dashboard overrides. Both package lockfiles remain authoritative; no new dependencies were added.
+3. In Settings → Environment Variables, add GEMINI_API_KEY using your existing real key for Production and any Preview environment you intend to test. This is a SERVER secret. Never name it VITE_GEMINI_API_KEY or copy it into frontend code.
+4. Remove the old VITE_API_URL override, or explicitly set VITE_API_URL=/api in those environments. Never use localhost in a production build. Optional GEMINI_MODEL=gemini-3.5-flash-lite preserves the validated model; GEMINI_TIMEOUT_MS may remain unset (existing default 45000). PORT, VERCEL and NODE_ENV do not need manual configuration. Leave diagnostic flags unset in production.
+5. Commit/push the reviewed changes to the existing connected production branch and redeploy THAT project, with build cache disabled for the first deployment so both dependency trees and API functions are built. Environment changes require a new deployment; they do not alter an old frontend bundle.
+6. Open https://ai-resume-analyzer-orpin-zeta.vercel.app/api/health: expect JSON status ok and aiConfigured true. Check the deployment Functions section for upload-resume and health. Then test the supplied PDF without a JD, with a JD, and DOCX. Check the browser Network panel: POST must target /api/upload-resume on the same Vercel origin. Health success alone is not a successful AI test.
+
+Vercel permits a 4.5 MB TOTAL function request body. Multipart overhead and JD text consume part of that limit, so this deployment accepts resume files up to 4 MiB; the displayed production upload limit reflects that. Local and intentionally separate backend configurations retain 5 MiB. Direct requests exceeding Vercel's platform limit may be rejected before Express; the frontend handles non-JSON 413/504 errors. The function duration is configured to 180 seconds to accommodate the existing bounded sequential model calls; provider deadlines, frontend deadlines and correction bounds were not changed. These platform settings do not eliminate Gemini quota, latency or availability failures.
+
+References: [Vercel Node functions](https://vercel.com/docs/functions/runtimes/node-js), [function limits](https://vercel.com/docs/functions/limitations), [configuration](https://vercel.com/docs/project-configuration/vercel-json).
+
+Automated serverless adapter tests use real multipart HTTP/PDF/DOCX parsing and production validation with mocked Gemini responses. Runtime-specific hosting and the final live URL must be verified AFTER the manual deployment; no push or deploy was performed by the assistant.

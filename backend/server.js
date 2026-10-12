@@ -71,9 +71,20 @@ const skillSuggestions = {
 };
 
 const app = express();
+// Keep the existing Express routes behind Vercel's same-origin /api prefix.
+app.use((req, res, next) => {
+  if (process.env.VERCEL && req.url.startsWith("/api/"))
+    req.url = req.url.slice(4);
+  next();
+});
 app.use(cors());
 
-const uploadDirectory = path.join(__dirname, "uploads");
+const uploadDirectory = process.env.VERCEL
+  ? path.join(require("node:os").tmpdir(), "resumelens-uploads")
+  : path.join(__dirname, "uploads");
+// Leave room for multipart fields under Vercel's 4.5 MB request limit.
+const maxFileMB = process.env.VERCEL ? 4 : 5;
+const maxFileBytes = maxFileMB * 1024 * 1024;
 fs.mkdirSync(uploadDirectory, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -81,14 +92,18 @@ const storage = multer.diskStorage({
     cb(null, uploadDirectory);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+    cb(
+      null,
+      require("node:crypto").randomUUID() +
+        path.extname(file.originalname).toLowerCase(),
+    );
   },
 });
 
 const upload = multer({
   storage,
-  // Busboy flags a file at the limit, so allow one byte for an inclusive 5 MB maximum.
-  limits: { fileSize: 5 * 1024 * 1024 + 1, fieldSize: 60000, fields: 4 },
+  // Busboy flags a file at the limit, so allow one byte for an inclusive maximum.
+  limits: { fileSize: maxFileBytes + 1, fieldSize: 60000, fields: 4 },
   fileFilter: (req, file, cb) => {
     const extension = path.extname(file.originalname).toLowerCase();
     const expectedMime = {
@@ -108,6 +123,14 @@ const upload = multer({
 
 app.get("/", (req, res) => {
   res.send("Backend Running");
+});
+
+app.get("/health", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({
+    status: "ok",
+    aiConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
+  });
 });
 
 app.post(
@@ -144,7 +167,7 @@ app.post(
                 ? "UNSUPPORTED_FILE"
                 : "UPLOAD_FAILED",
             message: tooLarge
-              ? "Resume must be 5 MB or smaller."
+              ? `Resume must be ${maxFileMB} MB or smaller.`
               : unsupported
                 ? error.message
                 : "Resume upload failed. Please try again.",
@@ -178,10 +201,10 @@ app.post(
           message: "Please upload a PDF or DOCX resume.",
         });
       }
-      if (req.file.size > 5 * 1024 * 1024) {
+      if (req.file.size > maxFileBytes) {
         return res.status(413).json({
           code: "FILE_TOO_LARGE",
-          message: "Resume must be 5 MB or smaller.",
+          message: `Resume must be ${maxFileMB} MB or smaller.`,
         });
       }
 
@@ -526,19 +549,22 @@ app.post(
   },
 );
 
+module.exports = app;
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, (error) => {
-  // Express 5 passes bind failures to this callback, rather than throwing.
-  if (error) {
-    console.error(
-      "Backend startup failed:",
-      error.code || "LISTEN_FAILED",
-      "port",
-      PORT,
-    );
-    process.exitCode = 1;
-    return;
-  }
-  console.log(`Server running on port ${PORT}`);
-});
+if (!process.env.VERCEL)
+  app.listen(PORT, (error) => {
+    // Express 5 passes bind failures to this callback, rather than throwing.
+    if (error) {
+      console.error(
+        "Backend startup failed:",
+        error.code || "LISTEN_FAILED",
+        "port",
+        PORT,
+      );
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`Server running on port ${PORT}`);
+  });

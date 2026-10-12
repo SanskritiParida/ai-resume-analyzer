@@ -41,7 +41,8 @@ test("Express bind failure cannot claim that the updated backend started", () =>
         );
       },
     };
-    vm.runInNewContext(
+    context.module ||= { exports: {} };
+  vm.runInNewContext(
       fs.readFileSync(path.resolve(__dirname, "../server.js"), "utf8"),
       context,
     );
@@ -70,6 +71,7 @@ test("Environment loader resolves .env from backend directory and permits absent
     },
     module: { exports: {} },
   };
+  context.module ||= { exports: {} };
   vm.runInNewContext(source, context);
   context.module.exports.loadEnvironment();
   assert.equal(loaded, path.join(__dirname, "../.env"));

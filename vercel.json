@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm ci && npm ci --prefix backend",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "fluid": true,
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 180,
+      "includeFiles": "backend/node_modules/pdf-parse/dist/worker/**",
+      "excludeFiles": "backend/{.env*,tests/**,uploads/**}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/upload-resume",
+      "destination": "/api/upload-resume"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    }
+  ]
+}

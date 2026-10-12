@@ -56,4 +56,12 @@ const jobClient = {
 };
 jobs.analyzeJobMatch = (resume, jd, options) =>
   realJobMatch(resume, jd, { ...options, client: jobClient });
-require("../../server");
+if (process.env.TEST_VERCEL_ADAPTER) {
+  Promise.all([import("../../../api/upload-resume.js"), import("../../../api/health.js")]).then(([upload, health]) => {
+    require("node:http").createServer((req, res) => {
+      if (["/api/upload-resume", "/upload-resume"].includes(req.url)) return upload.default(req, res);
+      if (["/api/health", "/health"].includes(req.url)) return health.default(req, res);
+      res.writeHead(404); res.end();
+    }).listen(0, "127.0.0.1", function () { console.log("SERVERLESS_TEST_PORT=" + this.address().port); });
+  }).catch(error => { console.error(error.name); process.exitCode = 1; });
+} else require("../../server");

@@ -12,7 +12,7 @@ export default defineConfig([
     languageOptions: { sourceType: 'commonjs', globals: globals.node },
   },
   {
-    files: ['*.js'],
+    files: ['*.js', 'api/*.js'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },

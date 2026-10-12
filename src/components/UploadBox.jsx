@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 const API_URL = (
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? "http://localhost:5000"
-    : "https://ai-resume-analyzer-api-hjy8.onrender.com")
+  (import.meta.env.DEV ? "http://localhost:5000" : "/api")
 ).replace(/\/+$/, "");
+const MAX_FILE_MB = API_URL === "/api" ? 4 : 5;
 function UploadBox({ setResult }) {
   const [file, setFile] = useState(null),
     [jd, setJD] = useState(""),
@@ -35,9 +34,9 @@ function UploadBox({ setResult }) {
       );
       return;
     }
-    if (selected.size > 5 * 1024 * 1024) {
+    if (selected.size > MAX_FILE_MB * 1024 * 1024) {
       setFile(null);
-      setError("Resume must be 5 MB or smaller.");
+      setError(`Resume must be ${MAX_FILE_MB} MB or smaller.`);
       return;
     }
     if (!selected.size) {
@@ -117,7 +116,13 @@ function UploadBox({ setResult }) {
       if (!response.ok)
         throw new Error(
           data?.message ||
-            "Analysis failed (HTTP " + response.status + "). Please retry.",
+            (response.status === 413
+              ? "Upload exceeds the server limit. On Vercel, use a resume of 4 MB or smaller."
+              : response.status === 504
+                ? "The backend request timed out. Please retry."
+                : "Analysis failed (HTTP " +
+                  response.status +
+                  "). Please retry."),
         );
       trace("frontend_validation", "start");
       const resume = data?.structuredResume;
@@ -336,7 +341,9 @@ function UploadBox({ setResult }) {
                 ? (file.size / 1024).toFixed(0) + " KB · Click to replace"
                 : "or click to browse your files"}
             </span>
-            <small>PDF or DOCX · Up to 5 MB · Selectable text</small>
+            <small>
+              PDF or DOCX · Up to {MAX_FILE_MB} MB · Selectable text
+            </small>
           </button>
           <p className="field-note">
             Text is sent to Gemini for analysis. Use only resumes you have
